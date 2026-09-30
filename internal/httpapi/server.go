@@ -6,16 +6,18 @@ import (
 	"time"
 )
 
-type Server struct{}
+type Server struct {
+	maxLimit     int
+	maxStringLen int
+}
 
-func New() *Server {
-	return &Server{}
+// New keeps the caps used by GET /v1/fizzbuzz.
+func New(maxLimit, maxStringLen int) *Server {
+	return &Server{maxLimit: maxLimit, maxStringLen: maxStringLen}
 }
 
 func (s *Server) Handler() http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /health", s.health)
-	return withLog(mux)
+	return withLog(s.routes())
 }
 
 func withLog(next http.Handler) http.Handler {

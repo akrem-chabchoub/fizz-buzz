@@ -8,7 +8,7 @@ import (
 )
 
 func TestHealth(t *testing.T) {
-	status, body := do(t, New().Handler(), "/health")
+	status, body := do(t, New(100, 64).Handler(), "/health")
 	if status != http.StatusOK {
 		t.Fatalf("status %d", status)
 	}

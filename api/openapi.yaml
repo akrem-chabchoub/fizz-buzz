@@ -1,0 +1,60 @@
+openapi: 3.0.3
+info:
+  title: fizzbuzz
+  version: 0.1.0
+paths:
+  /health:
+    get:
+      summary: the process is up
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /v1/fizzbuzz:
+    get:
+      summary: numbers from 1 to limit, with the two words swapped in
+      parameters:
+        - name: int1
+          in: query
+          required: true
+          schema: {type: integer, minimum: 1}
+        - name: int2
+          in: query
+          required: true
+          schema: {type: integer, minimum: 1}
+        - name: limit
+          in: query
+          required: true
+          schema: {type: integer, minimum: 1}
+        - name: str1
+          in: query
+          required: true
+          schema: {type: string}
+        - name: str2
+          in: query
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: the list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {type: string}
+        "400":
+          description: bad parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: {type: string}

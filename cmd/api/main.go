@@ -35,7 +35,7 @@ func main() {
 		os.Exit(1)
 	}
 	srv := &http.Server{
-		Handler:           httpapi.New().Handler(),
+		Handler:           httpapi.New(cfg.MaxLimit, cfg.MaxStringLen).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       5 * time.Second,
 		WriteTimeout:      10 * time.Second,
