@@ -76,3 +76,29 @@ paths:
                   str1: {type: string}
                   str2: {type: string}
                   hits: {type: integer, minimum: 0}
+  /ready:
+    get:
+      summary: redis answers a ping
+      responses:
+        "200":
+          description: redis is up
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: ok
+        "503":
+          description: redis did not answer
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: not ready

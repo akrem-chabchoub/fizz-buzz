@@ -15,22 +15,28 @@ type Config struct {
 	MaxLimit int
 	// MaxStringLen is the longest word, counted in runes.
 	MaxStringLen int
+	// RedisAddr is where the tally lives. Default is localhost:6379.
+	RedisAddr string
+	// RedisPassword is empty when Redis has no password.
+	RedisPassword string
+	// StatsRecordTimeout is how long a call waits to mark one hit.
+	StatsRecordTimeout time.Duration
 }
 
 func Load() (Config, error) {
 	cfg := Config{
-		HTTPAddr:        env("HTTP_ADDR", ":8080"),
-		LogLevel:        env("LOG_LEVEL", "info"),
-		ShutdownTimeout: 10 * time.Second,
-	}
-	if raw, ok := os.LookupEnv("SHUTDOWN_TIMEOUT"); ok && raw != "" {
-		d, err := time.ParseDuration(raw)
-		if err != nil || d <= 0 {
-			return Config{}, fmt.Errorf("SHUTDOWN_TIMEOUT must be a positive duration")
-		}
-		cfg.ShutdownTimeout = d
+		HTTPAddr:      env("HTTP_ADDR", ":8080"),
+		LogLevel:      env("LOG_LEVEL", "info"),
+		RedisAddr:     env("REDIS_ADDR", "localhost:6379"),
+		RedisPassword: env("REDIS_PASSWORD", ""),
 	}
 	var err error
+	if cfg.ShutdownTimeout, err = envDuration("SHUTDOWN_TIMEOUT", 10*time.Second); err != nil {
+		return Config{}, err
+	}
+	if cfg.StatsRecordTimeout, err = envDuration("STATS_RECORD_TIMEOUT", 200*time.Millisecond); err != nil {
+		return Config{}, err
+	}
 	if cfg.MaxLimit, err = envInt("MAX_LIMIT", 100_000); err != nil {
 		return Config{}, err
 	}
@@ -64,4 +70,16 @@ func envInt(key string, fallback int) (int, error) {
 		return 0, fmt.Errorf("%s must be an integer", key)
 	}
 	return n, nil
+}
+
+func envDuration(key string, fallback time.Duration) (time.Duration, error) {
+	raw, ok := os.LookupEnv(key)
+	if !ok || raw == "" {
+		return fallback, nil
+	}
+	d, err := time.ParseDuration(raw)
+	if err != nil || d <= 0 {
+		return 0, fmt.Errorf("%s must be a positive duration", key)
+	}
+	return d, nil
 }

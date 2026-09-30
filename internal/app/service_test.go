@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/akrem-chabchoub/fizz-buzz/internal/stats"
 )
@@ -18,8 +19,29 @@ func (errStore) Top(context.Context) (stats.Request, uint64, bool, error) {
 	return stats.Request{}, 0, false, errors.New("boom")
 }
 
+type blockStore struct{}
+
+func (blockStore) Record(ctx context.Context, _ stats.Request) error {
+	<-ctx.Done()
+	return ctx.Err()
+}
+
+func (blockStore) Top(context.Context) (stats.Request, uint64, bool, error) {
+	return stats.Request{}, 0, false, nil
+}
+
 func TestListReturnsRowWhenRecordFails(t *testing.T) {
-	svc := New(errStore{})
+	svc := New(errStore{}, time.Second)
+	got := svc.List(context.Background(), stats.Request{
+		Int1: 2, Int2: 3, Limit: 1, Str1: "a", Str2: "b",
+	})
+	if len(got) != 1 || got[0] != "1" {
+		t.Fatalf("%#v", got)
+	}
+}
+
+func TestListReturnsRowWhenRecordTimesOut(t *testing.T) {
+	svc := New(blockStore{}, 20*time.Millisecond)
 	got := svc.List(context.Background(), stats.Request{
 		Int1: 2, Int2: 3, Limit: 1, Str1: "a", Str2: "b",
 	})

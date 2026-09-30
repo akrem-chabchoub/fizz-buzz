@@ -11,11 +11,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/redis/go-redis/v9"
+
 	"github.com/akrem-chabchoub/fizz-buzz/internal/app"
 	"github.com/akrem-chabchoub/fizz-buzz/internal/config"
 	"github.com/akrem-chabchoub/fizz-buzz/internal/httpapi"
 	"github.com/akrem-chabchoub/fizz-buzz/internal/logger"
-	"github.com/akrem-chabchoub/fizz-buzz/internal/stats/memory"
+	"github.com/akrem-chabchoub/fizz-buzz/internal/stats/redistore"
 )
 
 func main() {
@@ -31,13 +33,27 @@ func main() {
 	}
 	slog.SetDefault(log)
 
+	client := redis.NewClient(&redis.Options{
+		Addr:     cfg.RedisAddr,
+		Password: cfg.RedisPassword,
+	})
+	store := redistore.New(client)
+	pingCtx, pingCancel := context.WithTimeout(context.Background(), 2*time.Second)
+	err = store.Ping(pingCtx)
+	pingCancel()
+	if err != nil {
+		log.Error("redis", "err", err)
+		os.Exit(1)
+	}
+
 	ln, err := net.Listen("tcp", cfg.HTTPAddr)
 	if err != nil {
 		log.Error("listen", "err", err)
 		os.Exit(1)
 	}
+	api := httpapi.New(app.New(store, cfg.StatsRecordTimeout), cfg.MaxLimit, cfg.MaxStringLen, store.Ping)
 	srv := &http.Server{
-		Handler:           httpapi.New(app.New(memory.New()), cfg.MaxLimit, cfg.MaxStringLen).Handler(),
+		Handler:           api.Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       5 * time.Second,
 		WriteTimeout:      10 * time.Second,

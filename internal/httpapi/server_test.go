@@ -5,13 +5,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/akrem-chabchoub/fizz-buzz/internal/app"
 	"github.com/akrem-chabchoub/fizz-buzz/internal/stats/memory"
 )
 
 func testHandler(maxLimit, maxStringLen int) http.Handler {
-	return New(app.New(memory.New()), maxLimit, maxStringLen).Handler()
+	return New(app.New(memory.New(), time.Second), maxLimit, maxStringLen, nil).Handler()
 }
 
 func TestHealth(t *testing.T) {
