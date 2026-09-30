@@ -11,9 +11,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/akrem-chabchoub/fizz-buzz/internal/app"
 	"github.com/akrem-chabchoub/fizz-buzz/internal/config"
 	"github.com/akrem-chabchoub/fizz-buzz/internal/httpapi"
 	"github.com/akrem-chabchoub/fizz-buzz/internal/logger"
+	"github.com/akrem-chabchoub/fizz-buzz/internal/stats/memory"
 )
 
 func main() {
@@ -35,7 +37,7 @@ func main() {
 		os.Exit(1)
 	}
 	srv := &http.Server{
-		Handler:           httpapi.New(cfg.MaxLimit, cfg.MaxStringLen).Handler(),
+		Handler:           httpapi.New(app.New(memory.New()), cfg.MaxLimit, cfg.MaxStringLen).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       5 * time.Second,
 		WriteTimeout:      10 * time.Second,

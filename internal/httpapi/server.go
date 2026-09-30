@@ -4,16 +4,20 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/akrem-chabchoub/fizz-buzz/internal/app"
 )
 
 type Server struct {
 	maxLimit     int
 	maxStringLen int
+	svc          *app.Service
 }
 
 // New keeps the caps used by GET /v1/fizzbuzz.
-func New(maxLimit, maxStringLen int) *Server {
-	return &Server{maxLimit: maxLimit, maxStringLen: maxStringLen}
+// svc records successful calls and answers GET /v1/stats.
+func New(svc *app.Service, maxLimit, maxStringLen int) *Server {
+	return &Server{maxLimit: maxLimit, maxStringLen: maxStringLen, svc: svc}
 }
 
 func (s *Server) Handler() http.Handler {

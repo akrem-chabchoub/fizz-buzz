@@ -7,8 +7,8 @@ import (
 )
 
 func TestFizzbuzz(t *testing.T) {
-	h := New(100, 64).Handler()
-	short := New(100, 3).Handler()
+	h := testHandler(100, 64)
+	short := testHandler(100, 3)
 	tests := []struct {
 		name   string
 		path   string

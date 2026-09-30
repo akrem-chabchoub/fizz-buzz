@@ -3,7 +3,7 @@ package httpapi
 import (
 	"net/http"
 
-	"github.com/akrem-chabchoub/fizz-buzz/internal/fizzbuzz"
+	"github.com/akrem-chabchoub/fizz-buzz/internal/stats"
 	"github.com/akrem-chabchoub/fizz-buzz/internal/utils"
 )
 
@@ -47,5 +47,7 @@ func (s *Server) fizzbuzz(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	writeJSON(w, http.StatusOK, fizzbuzz.Generate(int1, int2, limit, str1, str2))
+	writeJSON(w, http.StatusOK, s.svc.List(r.Context(), stats.Request{
+		Int1: int1, Int2: int2, Limit: limit, Str1: str1, Str2: str2,
+	}))
 }

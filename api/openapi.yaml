@@ -58,3 +58,21 @@ paths:
                 type: object
                 properties:
                   error: {type: string}
+  /v1/stats:
+    get:
+      summary: the most used successful fizzbuzz request
+      responses:
+        "200":
+          description: the winner, or hits 0 when nothing was counted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [hits]
+                properties:
+                  int1: {type: integer}
+                  int2: {type: integer}
+                  limit: {type: integer}
+                  str1: {type: string}
+                  str2: {type: string}
+                  hits: {type: integer, minimum: 0}

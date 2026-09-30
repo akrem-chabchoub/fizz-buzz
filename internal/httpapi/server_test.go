@@ -5,10 +5,17 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/akrem-chabchoub/fizz-buzz/internal/app"
+	"github.com/akrem-chabchoub/fizz-buzz/internal/stats/memory"
 )
 
+func testHandler(maxLimit, maxStringLen int) http.Handler {
+	return New(app.New(memory.New()), maxLimit, maxStringLen).Handler()
+}
+
 func TestHealth(t *testing.T) {
-	status, body := do(t, New(100, 64).Handler(), "/health")
+	status, body := do(t, testHandler(100, 64), "/health")
 	if status != http.StatusOK {
 		t.Fatalf("status %d", status)
 	}
