@@ -1,0 +1,12 @@
+# Restarts the api when a Go file changes. Not used by Docker.
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -o ./tmp/api ./cmd/api"
+bin = "./tmp/api"
+send_interrupt = true
+kill_delay = "1s"
+
+[misc]
+clean_on_exit = true

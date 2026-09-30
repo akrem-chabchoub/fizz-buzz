@@ -1,4 +1,4 @@
-.PHONY: test test-race lint run
+.PHONY: test test-race lint run dev
 
 test:
 	go test ./...
@@ -11,3 +11,6 @@ lint:
 
 run:
 	go run ./cmd/api
+
+dev:
+	go run github.com/air-verse/air@v1.62.0
