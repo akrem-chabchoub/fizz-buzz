@@ -39,4 +39,4 @@ curl -s localhost:8080/v1/stats
 - When `int1` and `int2` are the same number, every multiple becomes the two words stuck together.
 - If two questions have the same number of hits, the one with the smaller JSON wins.
 - If Redis blips during a call, you still get the list. `/ready` is what fails.
-- Redis keeps every question forever. The set `fizzbuzz:requests` does not expire.
+- The set `fizzbuzz:requests` does not expire. `docker compose down` deletes the container, and the tally goes with it.
