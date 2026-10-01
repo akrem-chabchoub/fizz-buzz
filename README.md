@@ -41,3 +41,13 @@ curl -s localhost:8080/v1/stats
 - Only a GET that returns the list is counted. A bad query or a `HEAD` call is not.
 - If Redis is slow or down, you still get the list, at most `STATS_TIMEOUT` later. `/ready` answers 503 and `/v1/stats` answers 500 within the same time.
 - The set `fizzbuzz:requests` does not expire. `docker compose down` deletes the container, and the tally goes with it.
+
+## design choices
+
+- `internal/fizzbuzz` is only the counting logic, no HTTP and no Redis. `internal/httpapi` reads the query and writes JSON. `internal/app` builds the list and counts it. `internal/stats/redistore` is the only code that talks to Redis.
+- The tally lives in Redis so it survives a restart and stays the same when more than one copy of the server runs. A map in memory would give each copy its own answer.
+- It is one sorted set. A hit is a single `ZINCRBY`, so two calls at the same time never lose a count. Finding the most used request is one small script that stays fast even with many ties.
+- The member is the JSON of the five parameters, so `int1=3`, `int1=03` and `int1=+3` count as the same request.
+- A call is counted before it is answered. Counts are exact, and each call pays one Redis round trip, capped by `STATS_TIMEOUT`. Counting in the background would be faster but could drop hits when the server stops.
+- The list is built in memory, so `MAX_LIMIT` (10000) and `MAX_STRING_LEN` (32 characters) are what keep one call small. The worst case is about 4 MB, because JSON writes `<` as `\u003c`. Raising them costs memory on every big call. Streaming the response would be the next step if bigger lists are needed.
+- Every new set of parameters adds a member to `fizzbuzz:requests`, and nothing removes them. 500k different requests take about 70 MB in Redis. That is fine here. In a real deployment, put rate limiting in front of the server and watch Redis memory, or trim the rarely used members, which turns the top into an estimate.
