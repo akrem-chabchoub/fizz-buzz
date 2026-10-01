@@ -24,12 +24,15 @@ func ParsePositive(raw, name string, present bool) (int, error) {
 }
 
 // ParseWord reads a query value.
-// An empty value is allowed. A longer value, counted in runes, is not.
+// An empty value is allowed. Invalid UTF-8 or a longer value, counted in runes, is not.
 func ParseWord(q url.Values, name string, maxLen int) (string, error) {
 	if !q.Has(name) {
 		return "", fmt.Errorf("%s is required", name)
 	}
 	v := q.Get(name)
+	if !utf8.ValidString(v) {
+		return "", fmt.Errorf("%s must be valid UTF-8", name)
+	}
 	if utf8.RuneCountInString(v) > maxLen {
 		return "", fmt.Errorf("%s is too long", name)
 	}

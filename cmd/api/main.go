@@ -11,8 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/redis/go-redis/v9"
-
 	"github.com/akrem-chabchoub/fizz-buzz/internal/app"
 	"github.com/akrem-chabchoub/fizz-buzz/internal/config"
 	"github.com/akrem-chabchoub/fizz-buzz/internal/httpapi"
@@ -33,11 +31,8 @@ func main() {
 	}
 	slog.SetDefault(log)
 
-	client := redis.NewClient(&redis.Options{
-		Addr:     cfg.RedisAddr,
-		Password: cfg.RedisPassword,
-	})
-	store := redistore.New(client)
+	store := redistore.New(cfg.RedisAddr, cfg.RedisPassword)
+	defer func() { _ = store.Close() }()
 	pingCtx, pingCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	err = store.Ping(pingCtx)
 	pingCancel()
@@ -51,7 +46,7 @@ func main() {
 		log.Error("listen", "err", err)
 		os.Exit(1)
 	}
-	api := httpapi.New(app.New(store, cfg.StatsRecordTimeout), cfg.MaxLimit, cfg.MaxStringLen, store.Ping)
+	api := httpapi.New(app.New(store, cfg.StatsTimeout), cfg.MaxLimit, cfg.MaxStringLen)
 	srv := &http.Server{
 		Handler:           api.Handler(),
 		ReadHeaderTimeout: 5 * time.Second,

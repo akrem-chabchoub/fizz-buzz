@@ -37,6 +37,7 @@ curl -s localhost:8080/v1/stats
 ## notes
 
 - When `int1` and `int2` are the same number, every multiple becomes the two words stuck together.
-- If two questions have the same number of hits, the one with the smaller JSON wins.
-- If Redis blips during a call, you still get the list. `/ready` is what fails.
+- If two questions have the same number of hits, the one with the smaller JSON wins. So `int1=10` beats `int1=9`.
+- Only a GET that returns the list is counted. A bad query or a `HEAD` call is not.
+- If Redis is slow or down, you still get the list, at most `STATS_TIMEOUT` later. `/ready` answers 503 and `/v1/stats` answers 500 within the same time.
 - The set `fizzbuzz:requests` does not expire. `docker compose down` deletes the container, and the tally goes with it.

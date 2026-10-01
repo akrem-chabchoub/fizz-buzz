@@ -50,4 +50,9 @@ func TestParseWord(t *testing.T) {
 	if _, err := ParseWord(q, "str1", 3); err == nil || err.Error() != "str1 is too long" {
 		t.Fatalf("err %v", err)
 	}
+
+	q.Set("str1", "\xff")
+	if _, err := ParseWord(q, "str1", 3); err == nil || err.Error() != "str1 must be valid UTF-8" {
+		t.Fatalf("err %v", err)
+	}
 }

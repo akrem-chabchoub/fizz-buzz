@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"net/http"
+	"net/url"
 
 	"github.com/akrem-chabchoub/fizz-buzz/internal/stats"
 	"github.com/akrem-chabchoub/fizz-buzz/internal/utils"
@@ -16,8 +17,13 @@ import (
 // returns ["1","2","fizz","4","buzz","fizz","7","8","fizz","buzz","11","fizz","13","14","fizzbuzz"].
 // A bad query answers 400, for example int1=0 returns {"error":"int1 must be greater than 0"}.
 // An empty word is allowed. When int1 equals int2, every multiple takes the both path.
+// A HEAD call is checked but neither built nor counted.
 func (s *Server) fizzbuzz(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query()
+	q, err := url.ParseQuery(r.URL.RawQuery)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid query string")
+		return
+	}
 	int1, err := utils.ParsePositive(q.Get("int1"), "int1", q.Has("int1"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
@@ -45,6 +51,11 @@ func (s *Server) fizzbuzz(w http.ResponseWriter, r *http.Request) {
 	str2, err := utils.ParseWord(q, "str2", s.maxStringLen)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if r.Method == http.MethodHead {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 	writeJSON(w, http.StatusOK, s.svc.List(r.Context(), stats.Request{

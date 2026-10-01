@@ -9,8 +9,8 @@ func TestLoadRejectsBadShutdownTimeout(t *testing.T) {
 	}
 }
 
-func TestLoadRejectsBadStatsRecordTimeout(t *testing.T) {
-	t.Setenv("STATS_RECORD_TIMEOUT", "0s")
+func TestLoadRejectsBadStatsTimeout(t *testing.T) {
+	t.Setenv("STATS_TIMEOUT", "0s")
 	if _, err := Load(); err == nil {
 		t.Fatal("expected error")
 	}

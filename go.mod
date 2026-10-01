@@ -1,6 +1,6 @@
 module github.com/akrem-chabchoub/fizz-buzz
 
-go 1.24.6
+go 1.26.8
 
 require (
 	github.com/alicebob/miniredis/v2 v2.39.0

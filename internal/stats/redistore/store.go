@@ -3,8 +3,8 @@ package redistore
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"strconv"
 
 	"github.com/redis/go-redis/v9"
 
@@ -14,16 +14,14 @@ import (
 const requestsKey = "fizzbuzz:requests"
 
 // topScript returns the member with the highest score.
-// Equal scores go to the lexicographically smallest member, same as memory.
+// Redis keeps equal scores sorted byte by byte, so LIMIT 0 1 is the smallest member.
 var topScript = redis.NewScript(`
 local top = redis.call('ZREVRANGE', KEYS[1], 0, 0, 'WITHSCORES')
 if top[1] == nil then
   return nil
 end
-local score = top[2]
-local members = redis.call('ZRANGEBYSCORE', KEYS[1], score, score)
-table.sort(members)
-return {members[1], score}
+local members = redis.call('ZRANGEBYSCORE', KEYS[1], top[2], top[2], 'LIMIT', 0, 1)
+return {members[1], tonumber(top[2])}
 `)
 
 // Store keeps the tally in Redis.
@@ -31,8 +29,19 @@ type Store struct {
 	client *redis.Client
 }
 
-func New(client *redis.Client) *Store {
-	return &Store{client: client}
+// New connects to Redis on first use.
+// Every call stops at the deadline of its context.
+func New(addr, password string) *Store {
+	return &Store{client: redis.NewClient(&redis.Options{
+		Addr:                  addr,
+		Password:              password,
+		ContextTimeoutEnabled: true,
+	})}
+}
+
+// Close releases the connections.
+func (s *Store) Close() error {
+	return s.client.Close()
 }
 
 // Ping reports whether Redis answers.
@@ -59,7 +68,7 @@ func (s *Store) Top(ctx context.Context) (stats.Request, uint64, bool, error) {
 		return stats.Request{}, 0, false, err
 	}
 	raw, err := topScript.Run(ctx, s.client, []string{requestsKey}).Result()
-	if err == redis.Nil {
+	if errors.Is(err, redis.Nil) {
 		return stats.Request{}, 0, false, nil
 	}
 	if err != nil {
@@ -73,34 +82,13 @@ func (s *Store) Top(ctx context.Context) (stats.Request, uint64, bool, error) {
 	if !ok {
 		return stats.Request{}, 0, false, fmt.Errorf("stats top: member %T", pair[0])
 	}
-	hits, err := scoreHits(pair[1])
-	if err != nil {
-		return stats.Request{}, 0, false, err
+	hits, ok := pair[1].(int64)
+	if !ok || hits < 0 {
+		return stats.Request{}, 0, false, fmt.Errorf("stats top: score %v", pair[1])
 	}
 	var req stats.Request
 	if err := json.Unmarshal([]byte(member), &req); err != nil {
 		return stats.Request{}, 0, false, err
 	}
-	return req, hits, true, nil
-}
-
-func scoreHits(v any) (uint64, error) {
-	switch n := v.(type) {
-	case int64:
-		if n < 0 {
-			return 0, fmt.Errorf("stats top: negative score")
-		}
-		return uint64(n), nil
-	case string:
-		f, err := strconv.ParseFloat(n, 64)
-		if err != nil {
-			return 0, fmt.Errorf("stats top: score %q", n)
-		}
-		if f < 0 {
-			return 0, fmt.Errorf("stats top: negative score")
-		}
-		return uint64(f), nil
-	default:
-		return 0, fmt.Errorf("stats top: score %T", v)
-	}
+	return req, uint64(hits), true, nil
 }

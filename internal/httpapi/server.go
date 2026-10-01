@@ -1,7 +1,6 @@
 package httpapi
 
 import (
-	"context"
 	"log/slog"
 	"net/http"
 	"time"
@@ -13,14 +12,12 @@ type Server struct {
 	maxLimit     int
 	maxStringLen int
 	svc          *app.Service
-	ping         func(context.Context) error
 }
 
 // New keeps the caps used by GET /v1/fizzbuzz.
-// svc records successful calls and answers GET /v1/stats.
-// ping is nil in tests that do not care about Redis. GET /ready calls it.
-func New(svc *app.Service, maxLimit, maxStringLen int, ping func(context.Context) error) *Server {
-	return &Server{maxLimit: maxLimit, maxStringLen: maxStringLen, svc: svc, ping: ping}
+// svc records successful calls, answers GET /v1/stats and checks the store for GET /ready.
+func New(svc *app.Service, maxLimit, maxStringLen int) *Server {
+	return &Server{maxLimit: maxLimit, maxStringLen: maxStringLen, svc: svc}
 }
 
 func (s *Server) Handler() http.Handler {
@@ -33,8 +30,11 @@ func withLog(next http.Handler) http.Handler {
 		ww := &statusWriter{ResponseWriter: w, status: http.StatusOK}
 		defer func() {
 			if rec := recover(); rec != nil {
+				if rec == http.ErrAbortHandler {
+					panic(rec)
+				}
 				slog.Error("panic", "err", rec)
-				if ww.status == http.StatusOK {
+				if !ww.wroteHeader {
 					writeError(ww, http.StatusInternalServerError, "internal error")
 				}
 			}
@@ -51,19 +51,28 @@ func withLog(next http.Handler) http.Handler {
 
 type statusWriter struct {
 	http.ResponseWriter
-	status int
+	status      int
+	wroteHeader bool
 }
 
 func (w *statusWriter) WriteHeader(code int) {
-	w.status = code
+	if !w.wroteHeader {
+		w.status = code
+		w.wroteHeader = true
+	}
 	w.ResponseWriter.WriteHeader(code)
+}
+
+func (w *statusWriter) Write(b []byte) (int, error) {
+	w.wroteHeader = true
+	return w.ResponseWriter.Write(b)
 }
 
 func logRequest(status int, msg string, args ...any) {
 	switch {
 	case status >= http.StatusInternalServerError:
 		slog.Error(msg, args...)
-	case status >= http.StatusBadRequest && status < http.StatusInternalServerError:
+	case status >= http.StatusBadRequest:
 		slog.Warn(msg, args...)
 	default:
 		slog.Info(msg, args...)

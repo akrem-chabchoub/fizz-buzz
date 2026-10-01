@@ -1,19 +1,14 @@
 package httpapi
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"testing"
-	"time"
-
-	"github.com/akrem-chabchoub/fizz-buzz/internal/app"
-	"github.com/akrem-chabchoub/fizz-buzz/internal/stats/memory"
 )
 
-func TestReadyNilPing(t *testing.T) {
-	status, body := do(t, testHandler(100, 64), "/ready")
+func TestReadyOK(t *testing.T) {
+	h, _ := testHandler(t, 100, 64)
+	status, body := do(t, h, "/ready")
 	if status != http.StatusOK {
 		t.Fatalf("status %d body %s", status, body)
 	}
@@ -21,9 +16,8 @@ func TestReadyNilPing(t *testing.T) {
 }
 
 func TestReadyDown(t *testing.T) {
-	h := New(app.New(memory.New(), time.Second), 100, 64, func(context.Context) error {
-		return errors.New("down")
-	}).Handler()
+	h, mr := testHandler(t, 100, 64)
+	mr.Close()
 	status, body := do(t, h, "/ready")
 	if status != http.StatusServiceUnavailable {
 		t.Fatalf("status %d body %s", status, body)

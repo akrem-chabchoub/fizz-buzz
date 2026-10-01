@@ -19,8 +19,8 @@ type Config struct {
 	RedisAddr string
 	// RedisPassword is empty when Redis has no password.
 	RedisPassword string
-	// StatsRecordTimeout is how long a call waits to mark one hit.
-	StatsRecordTimeout time.Duration
+	// StatsTimeout is how long one call to the tally may take, /ready included.
+	StatsTimeout time.Duration
 }
 
 func Load() (Config, error) {
@@ -34,13 +34,13 @@ func Load() (Config, error) {
 	if cfg.ShutdownTimeout, err = envDuration("SHUTDOWN_TIMEOUT", 10*time.Second); err != nil {
 		return Config{}, err
 	}
-	if cfg.StatsRecordTimeout, err = envDuration("STATS_RECORD_TIMEOUT", 200*time.Millisecond); err != nil {
+	if cfg.StatsTimeout, err = envDuration("STATS_TIMEOUT", 200*time.Millisecond); err != nil {
 		return Config{}, err
 	}
-	if cfg.MaxLimit, err = envInt("MAX_LIMIT", 100_000); err != nil {
+	if cfg.MaxLimit, err = envInt("MAX_LIMIT", 10_000); err != nil {
 		return Config{}, err
 	}
-	if cfg.MaxStringLen, err = envInt("MAX_STRING_LEN", 64); err != nil {
+	if cfg.MaxStringLen, err = envInt("MAX_STRING_LEN", 32); err != nil {
 		return Config{}, err
 	}
 	if cfg.MaxLimit < 1 {

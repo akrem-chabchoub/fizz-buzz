@@ -6,7 +6,8 @@ import (
 )
 
 // Request is one successful fizzbuzz call.
-// Field order is the tie key. Do not reorder the fields.
+// Its JSON is the key stored in Redis and breaks ties. Changing a field,
+// its order or its tag starts a new tally.
 type Request struct {
 	Int1  int    `json:"int1"`
 	Int2  int    `json:"int2"`
@@ -19,6 +20,7 @@ type Request struct {
 type Store interface {
 	Record(ctx context.Context, req Request) error
 	Top(ctx context.Context) (Request, uint64, bool, error)
+	Ping(ctx context.Context) error
 }
 
 // Canonical is the JSON of the request.

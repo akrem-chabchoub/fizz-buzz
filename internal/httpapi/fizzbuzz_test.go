@@ -7,8 +7,8 @@ import (
 )
 
 func TestFizzbuzz(t *testing.T) {
-	h := testHandler(100, 64)
-	short := testHandler(100, 3)
+	h, _ := testHandler(t, 100, 64)
+	short, _ := testHandler(t, 100, 3)
 	tests := []struct {
 		name   string
 		path   string
@@ -66,6 +66,20 @@ func TestFizzbuzz(t *testing.T) {
 			want:   []string{"1", ""},
 			h:      h,
 		},
+		{
+			name:   "invalid utf8",
+			path:   "/v1/fizzbuzz?int1=3&int2=5&limit=5&str1=%FF&str2=b",
+			status: http.StatusBadRequest,
+			err:    "str1 must be valid UTF-8",
+			h:      h,
+		},
+		{
+			name:   "malformed query",
+			path:   "/v1/fizzbuzz?int1=3&int2=5&limit=5&str1=%ZZ&str2=b",
+			status: http.StatusBadRequest,
+			err:    "invalid query string",
+			h:      h,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -96,5 +110,14 @@ func TestFizzbuzz(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestFizzbuzzAnswersWhenRedisIsDown(t *testing.T) {
+	h, mr := testHandler(t, 100, 64)
+	mr.Close()
+	status, body := do(t, h, "/v1/fizzbuzz?int1=3&int2=5&limit=3&str1=fizz&str2=buzz")
+	if status != http.StatusOK {
+		t.Fatalf("status %d body %s", status, body)
 	}
 }

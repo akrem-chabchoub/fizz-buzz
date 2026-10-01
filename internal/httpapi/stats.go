@@ -7,7 +7,7 @@ import (
 
 // stats answers GET /v1/stats.
 // No successful calls yet returns {"hits":0}.
-// Only a 200 fizzbuzz call is counted. A bad query is not.
+// Only a GET fizzbuzz call that answers 200 is counted.
 func (s *Server) stats(w http.ResponseWriter, r *http.Request) {
 	req, hits, ok, err := s.svc.Top(r.Context())
 	if err != nil {

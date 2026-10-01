@@ -7,7 +7,8 @@ import (
 )
 
 func TestOpenAPI(t *testing.T) {
-	status, body := do(t, testHandler(100, 64), "/openapi.yaml")
+	h, _ := testHandler(t, 100, 64)
+	status, body := do(t, h, "/openapi.yaml")
 	if status != http.StatusOK {
 		t.Fatalf("status %d", status)
 	}
@@ -18,7 +19,8 @@ func TestOpenAPI(t *testing.T) {
 }
 
 func TestSwagger(t *testing.T) {
-	status, body := do(t, testHandler(100, 64), "/swagger/")
+	h, _ := testHandler(t, 100, 64)
+	status, body := do(t, h, "/swagger/")
 	if status != http.StatusOK {
 		t.Fatalf("status %d body %s", status, body)
 	}

@@ -11,20 +11,21 @@ import (
 
 // Service runs the fizzbuzz flow and the tally.
 type Service struct {
-	store         stats.Store
-	recordTimeout time.Duration
+	store   stats.Store
+	timeout time.Duration
 }
 
-func New(store stats.Store, recordTimeout time.Duration) *Service {
-	return &Service{store: store, recordTimeout: recordTimeout}
+// New bounds every store call by timeout.
+func New(store stats.Store, timeout time.Duration) *Service {
+	return &Service{store: store, timeout: timeout}
 }
 
 // List builds the fizzbuzz list and counts the request.
-// The counter waits at most recordTimeout. The list is still returned when that fails.
+// A failed count is logged and the list is still returned.
 func (s *Service) List(ctx context.Context, req stats.Request) []string {
-	recCtx, cancel := context.WithTimeout(ctx, s.recordTimeout)
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
-	if err := s.store.Record(recCtx, req); err != nil {
+	if err := s.store.Record(ctx, req); err != nil {
 		slog.Error("stats record failed", "err", err)
 	}
 	return fizzbuzz.Generate(req.Int1, req.Int2, req.Limit, req.Str1, req.Str2)
@@ -32,5 +33,14 @@ func (s *Service) List(ctx context.Context, req stats.Request) []string {
 
 // Top returns the most used request.
 func (s *Service) Top(ctx context.Context) (stats.Request, uint64, bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
 	return s.store.Top(ctx)
+}
+
+// Ready reports whether the store answers.
+func (s *Service) Ready(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+	return s.store.Ping(ctx)
 }
