@@ -23,8 +23,13 @@ test:
 
 lint:
   extends: .go
-  # Ships Go 1.26.1 and downloads the go.mod version on its own.
+  # Ships Go 1.26.1 and downloads the go.mod version, about 300 MB, so it keeps its own cache.
   image: golangci/golangci-lint:v2.11.3
+  cache:
+    key:
+      prefix: lint
+      files: [go.sum]
+    paths: [.go/pkg/mod/]
   script:
     - golangci-lint run ./...
 
